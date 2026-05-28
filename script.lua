@@ -44,7 +44,10 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main", nil) -- Title, Image
 local MainSection = MainTab:CreateSection("Main")
-local Slider = MainTab:CreateSlider({
+local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
+local MiscSection = MiscainTab:CreateSection("Misc")
+
+local Slider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 100},
    Increment = 10,
