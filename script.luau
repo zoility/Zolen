@@ -48,24 +48,57 @@ local MiscSection = MiscTab:CreateSection("Misc")
 local weavetrue = false
 local weaveint = 0.22
 
-local Slider = MainTab:CreateSlider({
-   Name = "Auto Weave",
+local WeaveSlider = MainTab:CreateSlider({
+   Name = "Auto Weave Interval",
    Range = {0, 1},
    Increment = 0.01,
-   Suffix = "Weave Interval",
+   Suffix = "s",
    CurrentValue = 0.22,
-   Flag = "Slider2", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "WeaveSlider", -- Updated flag to prevent overlaps
    Callback = function(Value)
-   weaveint = (Value)
+       weaveint = Value
    end,
 })
 
-local Toggle = MainTab:CreateToggle({
+local WeaveToggle = MainTab:CreateToggle({
    Name = "Auto Weave",
    CurrentValue = false,
-   Flag = "Weave", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "WeaveToggle", -- Updated flag to prevent overlaps
    Callback = function(Value)
-   weavetrue = (Value)
+       weavetrue = Value
+       
+       if weavetrue then
+           task.spawn(function()
+               while weavetrue do
+                   local player = game:GetService("Players").LocalPlayer
+                   
+                   -- Using pcall and FindFirstChild prevents the script from breaking if you die or respawn
+                   pcall(function()
+                       local args = {
+                           "Weave",
+                           [3] = true
+                       }
+                       
+                       local character = player.Character
+                       if character then
+                           local core = character:FindFirstChild("Core")
+                           if core then
+                               local communicate = core:FindFirstChild("Communicate")
+                               if communicate then
+                                   local remote = communicate:FindFirstChild("")
+                                   if remote then
+                                       remote:FireServer(unpack(args))
+                                   end
+                               end
+                           end
+                       end
+                   end)
+                   
+                   -- Waits for the exact amount of time set by your slider before firing again
+                   task.wait(weaveint)
+               end
+           end)
+       end
    end,
 })
 
