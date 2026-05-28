@@ -41,4 +41,4 @@ local Window = Rayfield:CreateWindow({
 
 
 local Tab1 = Window:CreateTab("Main", nil)
-local Section = Tab:CreateSection("MainSection")
+local Section1 = Tab:CreateSection("MainSection")
