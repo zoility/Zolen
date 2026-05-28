@@ -49,7 +49,7 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
 local MiscSection = MiscTab:CreateSection("Misc")
 
-local Slider = MiscTab:CreateSlider({
+local Slider = MainTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 100},
    Increment = 10,
