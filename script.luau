@@ -49,16 +49,16 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
 local MiscSection = MiscTab:CreateSection("Misc")
 
-local Slider = MainTab:CreateSlider({
+local Slider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 100},
    Increment = 10,
-   Suffix = "Bananas",
+   Suffix = "WalkSpeed",
    CurrentValue = 20,
    Flag = "Slider1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
    Callback = function(Value)
    runserv.HeartBeat:Connect(function()
-         char.humanoid.WalkSpeed = CurrentValue
+         char.humanoid.WalkSpeed = (Value)
    end)
    end,
 })
