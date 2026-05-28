@@ -38,13 +38,3 @@ local Window = Rayfield:CreateWindow({
       Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
    }
 })
-
-local MainTab = Window:CreateTab("Main", nil) -- Title, Image
-local Section = MainTab:CreateSection("Main")
-
-Rayfield:Notify({
-   Title = "Zolen Loaded",
-   Content = "Loaded Zolen",
-   Duration = 4,
-   Image = nil,
-})
