@@ -45,6 +45,30 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
 local MiscSection = MiscTab:CreateSection("Misc")
 
+local weavetrue = false
+local weaveint = 0.22
+
+local Slider = MainTab:CreateSlider({
+   Name = "Auto Weave",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "Weave Interval",
+   CurrentValue = 0.22,
+   Flag = "Slider2", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   weaveint = (Value)
+   end,
+})
+
+local Toggle = MainTab:CreateToggle({
+   Name = "Auto Weave",
+   CurrentValue = false,
+   Flag = "Weave", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   weavetrue = (Value)
+   end,
+})
+
 local Slider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 300},
