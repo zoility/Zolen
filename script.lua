@@ -1,5 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
+local runserv = game.RunService
+local players = game.Players
+local player = players.LocalPlayer
+local char = player.Character
 local Window = Rayfield:CreateWindow({
    Name = "Zolen",
    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
@@ -40,3 +43,17 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("Main", nil) -- Title, Image
+local MainSection = MainTab:CreateSection("Main")
+local Slider = Tab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {0, 100},
+   Increment = 10,
+   Suffix = "Bananas",
+   CurrentValue = 20,
+   Flag = "Slider1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Callback = function(Value)
+   runserv.HeartBeat:Connect(function()
+         char.humanoid.WalkSpeed = CurrentValue
+   end)
+   end,
+})
