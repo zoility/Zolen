@@ -40,7 +40,7 @@ local Window = Rayfield:CreateWindow({
 })
 
 local MainTab = Window:CreateTab("Main", nil) -- Title, Image
-local Section = Tab:CreateSection("Main")
+local Section = MainTab:CreateSection("Main")
 
 Rayfield:Notify({
    Title = "Zolen Loaded",
