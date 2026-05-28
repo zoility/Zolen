@@ -38,11 +38,7 @@ local Window = Rayfield:CreateWindow({
       Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
    }
 })
-    Rayfield:Notify({
-   Title = "Game Supported",
-   Content = "The script supports this game",
-   Duration = 6.5,
-   Image = 4483362458,
-})
+
+
 local Tab1 = Window:CreateTab("Main", nil)
 local Section = Tab:CreateSection("MainSection")
