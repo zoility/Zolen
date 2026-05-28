@@ -46,16 +46,29 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
 local MiscSection = MiscTab:CreateSection("Misc")
 
+
+local targetSpeed = 20
+
+game:GetService("RunService").Heartbeat:Connect(function()
+   local player = game.Players.LocalPlayer
+   local character = player.Character
+   if character then
+      local humanoid = character:FindFirstChildOfClass("Humanoid")
+      if humanoid then
+         humanoid.WalkSpeed = targetSpeed
+      end
+   end
+end)
+
+-- 2. Update only the variable inside the slider callback
 local Slider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
-   Range = {0, 100},
-   Increment = 10,
+   Range = {0, 300},
+   Increment = 2,
    Suffix = "WalkSpeed",
    CurrentValue = 20,
-   Flag = "Slider1", -- A flag is the identifier for the configuration file; make sure every element has a different flag if you're using configuration saving to ensure no overlaps
+   Flag = "Slider1",
    Callback = function(Value)
-game:GetService("RunService").RenderStepped:Connect(function()
-   game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = (Value)
-end)
+      targetSpeed = Value
    end,
 })
