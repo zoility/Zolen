@@ -43,10 +43,11 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- Tabs & Sections
+-- Tabs organized in ALPHABETICAL ORDER
 local MainTab = Window:CreateTab("Main", nil) 
-local TradeTab = Window:CreateTab("Trade", nil) 
 local MiscTab = Window:CreateTab("Misc", nil) 
+local TradeTab = Window:CreateTab("Trade", nil) 
+
 local MiscSection = MiscTab:CreateSection("Misc")
 
 -- Configuration States
@@ -67,144 +68,24 @@ local selectedPlayerName = ""
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
 
--- ==========================================
--- TRADE TAB ELEMENTS (Fling Mechanics)
--- ==========================================
-
-TradeTab:CreateSection("Target Settings")
-
--- Dynamic Player Dropdown
-local PlayerDropdown = TradeTab:CreateDropdown({
-   Name = "Select Target",
-   Options = {},
-   CurrentOption = "", 
-   MultipleOptions = false,
-   Flag = "FlingTargetDropdown",
-   Callback = function(Options)
-      selectedPlayerName = Options[1]
-   end,
-})
-
--- Helper function to refresh the player dropdown list
-local function RefreshDropdown()
-   local playerList = {}
-   for _, p in ipairs(Players:GetPlayers()) do
-      if p ~= LocalPlayer then
-         table.insert(playerList, p.Name)
+-- Helper functions for Character Collisions (From your found logic)
+local function EnableCollisions(character)
+   if not character then return end 
+   for _, part in pairs(character:GetDescendants()) do
+      if part:IsA("BasePart") then
+         part.CanCollide = true
       end
    end
-   PlayerDropdown:Refresh(playerList)
 end
 
--- Hook up dropdown updates to player events
-Players.PlayerAdded:Connect(RefreshDropdown)
-Players.PlayerRemoving:Connect(RefreshDropdown)
-task.spawn(RefreshDropdown)
-
--- Smooth but High-Power 4-Second Target Fling Button
-local FlingButton = TradeTab:CreateButton({
-   Name = "Fling Target (4s)",
-   Callback = function()
-      local targetPlayer = Players:FindFirstChild(selectedPlayerName)
-      if not targetPlayer or not targetPlayer.Character then 
-         return Rayfield:Notify({Title = "Error", Content = "No valid target selected or player left!", Duration = 3}) 
+local function DisableCollisions(character)
+   if not character then return end
+   for _, part in pairs(character:GetDescendants()) do
+      if part:IsA("BasePart") then
+         part.CanCollide = false
       end
-
-      local myChar = LocalPlayer.Character
-      local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
-      local myRoot = myHum and myHum.RootPart
-      local tChar = targetPlayer.Character
-      local tHum = tChar:FindFirstChildOfClass("Humanoid")
-      local tRoot = tHum and tHum.RootPart
-
-      if myChar and myHum and myRoot then
-         if tHum and tHum.Sit then
-            return Rayfield:Notify({Title = "Error", Content = targetPlayer.Name .. " is sitting!", Duration = 3})
-         end
-
-         -- Save original location to return later
-         if myRoot.Velocity.Magnitude < 50 then
-            getgenv().OldPos = myRoot.CFrame
-         end
-
-         -- STRICTLY LOCK CAMERA IN PLACE
-         local originalCameraCFrame = Camera.CFrame
-         Camera.CameraType = Enum.CameraType.Scriptable
-
-         -- Bypass boundary limits
-         workspace.FallenPartsDestroyHeight = 0/0
-
-         -- Create physical push force stability 
-         local BV = Instance.new("BodyVelocity")
-         BV.Parent = myRoot
-         BV.Velocity = Vector3.new(0, 0, 0)
-         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
-         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-
-         -- MAX LEVEL POSITIONAL KINETIC FLING ENERGY
-         local FPos = function(BasePart, Pos, Ang)
-            myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
-            myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
-            
-            -- Override physics engine vectors to absolute force maximums
-            myRoot.Velocity = Vector3.new(9e37, 9e37, 9e37)
-            myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
-         end
-
-         local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
-         if not basePartToTarget then return end
-
-         local startTime = tick()
-         local maxTimeLimit = 4 
-         local angleDeg = 0
-
-         Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. "...", Duration = 4})
-
-         -- Keep updating actual target positioning while keeping camera static
-         repeat
-            if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
-               angleDeg = angleDeg + 90
-               
-               -- Override any tracking adjustments to force camera stay completely still
-               Camera.CFrame = originalCameraCFrame
-               
-               -- Align real character straight into target boundaries
-               FPos(basePartToTarget, CFrame.new(0, -0.25, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
-               task.wait()
-            else
-               break
-            end
-         until tick() - startTime >= maxTimeLimit
-
-         -- Clean up physics forces immediately
-         BV:Destroy()
-         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-
-         -- Teleport back to original placement location coordinate mapping safely
-         if getgenv().OldPos then
-            repeat
-               myRoot.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
-               myChar:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
-               myHum:ChangeState("GettingUp")
-               for _, part in pairs(myChar:GetChildren()) do
-                  if part:IsA("BasePart") then
-                     part.Velocity, part.RotVelocity = Vector3.new(), Vector3.new()
-                  end
-               end
-               task.wait()
-            until (myRoot.Position - getgenv().OldPos.p).Magnitude < 25
-            workspace.FallenPartsDestroyHeight = getgenv().FPDH
-         end
-         
-         -- RE-ATTACH CAMERA SAFELY TO CHARACTER
-         Camera.CameraType = Enum.CameraType.Custom
-         Camera.CameraSubject = myHum
-         
-         Rayfield:Notify({Title = "Finished", Content = "Returned safely.", Duration = 2})
-      end
-   end,
-})
+   end
+end
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
@@ -353,5 +234,149 @@ local WalkSpeedSlider = MiscTab:CreateSlider({
    Flag = "Slider1", 
    Callback = function(Value)
       currentWalkSpeed = Value
+   end,
+})
+
+-- ==========================================
+-- TRADE TAB ELEMENTS (Enhanced Fling Mechanics)
+-- ==========================================
+
+TradeTab:CreateSection("Target Settings")
+
+local PlayerDropdown = TradeTab:CreateDropdown({
+   Name = "Select Target",
+   Options = {},
+   CurrentOption = "", 
+   MultipleOptions = false,
+   Flag = "FlingTargetDropdown",
+   Callback = function(Options)
+      selectedPlayerName = Options[1]
+   end,
+})
+
+local function RefreshDropdown()
+   local playerList = {}
+   for _, p in ipairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then
+         table.insert(playerList, p.Name)
+      end
+   end
+   PlayerDropdown:Refresh(playerList)
+end
+
+Players.PlayerAdded:Connect(RefreshDropdown)
+Players.PlayerRemoving:Connect(RefreshDropdown)
+task.spawn(RefreshDropdown)
+
+-- Advanced 4-Second Target Fling Button
+local FlingButton = TradeTab:CreateButton({
+   Name = "Fling Target (4s)",
+   Callback = function()
+      local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+      if not targetPlayer or not targetPlayer.Character then 
+         return Rayfield:Notify({Title = "Error", Content = "No valid target selected or player left!", Duration = 3}) 
+      end
+
+      local myChar = LocalPlayer.Character
+      local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+      local myRoot = myHum and myHum.RootPart
+      local tChar = targetPlayer.Character
+      local tHum = tChar:FindFirstChildOfClass("Humanoid")
+      local tRoot = tHum and tHum.RootPart
+
+      if myChar and myHum and myRoot then
+         if tHum and tHum.Sit then
+            return Rayfield:Notify({Title = "Error", Content = targetPlayer.Name .. " is sitting!", Duration = 3})
+         end
+
+         if myRoot.Velocity.Magnitude < 50 then
+            getgenv().OldPos = myRoot.CFrame
+         end
+
+         -- STRICTLY LOCK CAMERA IN PLACE
+         local originalCameraCFrame = Camera.CFrame
+         Camera.CameraType = Enum.CameraType.Scriptable
+
+         workspace.FallenPartsDestroyHeight = 0/0
+
+         -- Create physical push force stability 
+         local BV = Instance.new("BodyVelocity")
+         BV.Parent = myRoot
+         BV.Velocity = Vector3.new(0, 0, 0)
+         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+         -- NEW ENHANCED VELOCITY LOGIC (High Power De-obfuscated Matrix)
+         local FPos = function(BasePart, Pos, Ang)
+            myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            
+            -- Multiplied stability forces from the new algorithm logic
+            myRoot.Velocity = Vector3.new(9e8, 9e8 * 10, 9e8)
+            myRoot.RotVelocity = Vector3.new(9e9, 9e9, 9e9) 
+         end
+
+         local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
+         if not basePartToTarget then return end
+
+         local startTime = tick()
+         local maxTimeLimit = 4 
+         local angleDeg = 0
+
+         Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. "...", Duration = 4})
+
+         repeat
+            if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
+               angleDeg = angleDeg + 100 -- Faster rotation increment from your logic
+               Camera.CFrame = originalCameraCFrame
+               
+               -- Temporarily open player physics collisions to maximize impact energy transferring
+               EnableCollisions(myChar)
+               
+               -- Alternating High/Low Cross-Vector Shifts
+               if basePartToTarget.Velocity.Magnitude < 50 then
+                  FPos(basePartToTarget, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
+                  task.wait()
+                  FPos(basePartToTarget, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
+                  task.wait()
+               else
+                  FPos(basePartToTarget, CFrame.new(0, 1.5, tHum.MoveDirection), CFrame.Angles(math.rad(90), 0, 0))
+                  task.wait()
+                  FPos(basePartToTarget, CFrame.new(0, -1.5, -tHum.MoveDirection), CFrame.Angles(0, 0, 0))
+                  task.wait()
+               end
+            else
+               break
+            end
+         until tick() - startTime >= maxTimeLimit
+
+         -- Clean up physics forces immediately
+         BV:Destroy()
+         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+         DisableCollisions(myChar)
+
+         -- Teleport back to original placement location safely
+         if getgenv().OldPos then
+            repeat
+               myRoot.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+               myChar:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+               myHum:ChangeState("GettingUp")
+               for _, part in pairs(myChar:GetChildren()) do
+                  if part:IsA("BasePart") then
+                     part.Velocity, part.RotVelocity = Vector3.new(), Vector3.new()
+                  end
+               end
+               task.wait()
+            until (myRoot.Position - getgenv().OldPos.p).Magnitude < 25
+            workspace.FallenPartsDestroyHeight = getgenv().FPDH
+         end
+         
+         -- RE-ATTACH CAMERA SAFELY TO CHARACTER
+         Camera.CameraType = Enum.CameraType.Custom
+         Camera.CameraSubject = myHum
+         
+         Rayfield:Notify({Title = "Finished", Content = "Returned safely.", Duration = 2})
+      end
    end,
 })
