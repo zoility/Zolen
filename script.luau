@@ -2,42 +2,41 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Zolen",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = 0, 
    LoadingTitle = "ZOLEN ON TOP",
    LoadingSubtitle = "by zoility",
-   ShowText = "Zolen", -- for mobile users to unhide Rayfield, change if you'd like
-   Theme = "AmberGlow", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+   ShowText = "Zolen", 
+   Theme = "AmberGlow", 
 
-   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+   ToggleUIKeybind = "K", 
 
    DisableRayfieldPrompts = false,
-   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
-
-   -- ScriptID = "sid_xxxxxxxxxxxx", -- Your Script ID from developer.sirius.menu — enables analytics, managed keys, and script hosting
+   DisableBuildWarnings = false, 
 
    ConfigurationSaving = {
       Enabled = false,
-      FolderName = nil, -- Create a custom folder for your hub/game
+      FolderName = nil, 
       FileName = "Big Hub"
    },
 
    Discord = {
-      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ABCD would be ABCD
-      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+      Enabled = false, 
+      Invite = "noinvitelink", 
+      RememberJoins = true 
    },
 
-   KeySystem = false, -- Set this to true to use our key system
+   KeySystem = false, 
    KeySettings = {
       Title = "Untitled",
       Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
-      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+      Note = "No method of obtaining the key is provided", 
+      FileName = "Key", 
+      SaveKey = true, 
+      GrabKeyFromSite = false, 
+      Key = {"Hello"} 
    }
 })
+
 -- Services & Players Setup
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -128,11 +127,11 @@ local FlingButton = TradeTab:CreateButton({
             getgenv().OldPos = myRoot.CFrame
          end
 
-         -- LOCK CAMERA STRICKLY IN PLACE (Client Side Focus Anchor)
+         -- LOCK CAMERA IN PLACE (Client Side Focus Anchor)
          local originalCameraCFrame = Camera.CFrame
          Camera.CameraType = Enum.CameraType.Scriptable
 
-         -- Create local client-side fake parts to keep you visible in place on your screen
+         -- Create local client-side fake parts to keep you stationary on your screen
          local renderClones = {}
          for _, part in ipairs(myChar:GetChildren()) do
             if part:IsA("BasePart") and part.Transparency < 1 then
@@ -142,7 +141,7 @@ local FlingButton = TradeTab:CreateButton({
                clone.CanCollide = false
                clone.Parent = workspace
                table.insert(renderClones, clone)
-               part.Transparency = 1 -- Hide actual part from local view while it moves
+               part.Transparency = 1 
             end
          end
 
@@ -157,12 +156,12 @@ local FlingButton = TradeTab:CreateButton({
 
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-         -- ULTIMATE POWER POSITIONAL LOGIC
+         -- HIGH FORCE POSITIONAL LOGIC
          local FPos = function(BasePart, Pos, Ang)
             myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             
-            -- Pushed beyond 32-bit floating point engine limit barriers for raw force output
+            -- High concentration impact vectors
             myRoot.Velocity = Vector3.new(9e37, 9e37, 9e37)
             myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
          end
@@ -184,7 +183,7 @@ local FlingButton = TradeTab:CreateButton({
                -- Keep camera frozen in position
                Camera.CFrame = originalCameraCFrame
                
-               -- High power tracking overlap matrix rotation
+               -- Underneath alignment matrix
                FPos(basePartToTarget, CFrame.new(0, -0.25, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
                task.wait()
             else
@@ -196,13 +195,12 @@ local FlingButton = TradeTab:CreateButton({
          BV:Destroy()
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-         -- Clean up visible client fake proxy clones and restore actual body opacity
+         -- Clean up visible client fake clones and restore original body transparency maps
          for _, clone in ipairs(renderClones) do
             clone:Destroy()
          end
          for _, part in ipairs(myChar:GetChildren()) do
             if part:IsA("BasePart") then
-               -- Restore normal render state mapping
                if part.Name == "HumanoidRootPart" then
                   part.Transparency = 1
                else
@@ -312,7 +310,7 @@ local HitboxSlider = MainTab:CreateSlider({
    end,
 })
 
--- Hitbox Expander Toggle
+-- Hitbox Expander Toggle (FIXED NESTING STRUCT)
 local HitboxToggle = MainTab:CreateToggle({
    Name = "Hitbox Expander",
    CurrentValue = false,
@@ -321,28 +319,6 @@ local HitboxToggle = MainTab:CreateToggle({
       hitboxtrue = Value
       
       if hitboxtrue then
-         if HitboxConnection then 
-            HitboxConnection:Disconnect() 
-            HitboxConnection = nil 
-         end
-         
-         HitboxConnection = RunService.Heartbeat:Connect(function()
-            if not hitboxtrue then return end
-            
-            for _, player in ipairs(Players:GetPlayers()) do
-               if player ~= LocalPlayer and player.Character then
-                  local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                  if hrp then
-                     hrp.Size = Vector3.new(hitboxsize, hitboxsize, hitboxsize)
-                     hrp.Transparency = 0.7 
-                     hrp.CanCollide = false 
-                  end
-               end
-            end
-         end)
-      else
-         if HitboxConnection then 
-            if hitboxtrue then
          if HitboxConnection then 
             HitboxConnection:Disconnect() 
             HitboxConnection = nil 
@@ -402,7 +378,7 @@ local WalkSpeedSlider = MiscTab:CreateSlider({
    Range = {0, 300},
    Increment = 2,
    Suffix = "WalkSpeed",
-   CurrentValue = 12, -- Matches the startup configuration variable
+   CurrentValue = 12, 
    Flag = "Slider1", 
    Callback = function(Value)
       currentWalkSpeed = Value
