@@ -45,8 +45,6 @@ local LocalPlayer = Players.LocalPlayer
 
 -- Tabs & Sections
 local MainTab = Window:CreateTab("Main", nil) 
-local MainSection = MainTab:CreateSection("Main")
-
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
@@ -63,28 +61,19 @@ local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
 
--- Dedicated Punch Speed Variables
+-- Dedicated Global Speed Variables
 local currentPunchSpeed = 1.0
 local PunchAnimConnection = nil
 
--- The targeted words list. Animations containing these words WILL be sped up.
-local targetWords = {
-   "philly", "crashout", "muay", "thai", "jaw", "breaker", "crowbar", "mcgregor", 
-   "peak", "boo", "striker", "yn", "boxer", "slap", "baddie", "fore", "man", 
-   "woozy", "hawk", "omni", "luffy", "jeet", "popeye", "hitman", "ali", "dukes", 
-   "khabib"
-}
-
--- Movement terms explicitly forced to stay normal speed, just in case of word overlap
-local movementExclusions = {
-   "walk", "run", "idle", "jump", "fall", "dash"
+-- Strict list of default movement, physics, and engine animations to completely ignore
+local defaultExclusions = {
+   "walk", "run", "idle", "jump", "fall", "dash", "sit", "swim", "sprint",
+   "climb", "strafe", "toolanim", "pose", "wave", "cheer", "laugh", "dance"
 }
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
 -- ==========================================
-
-MainTab:CreateSection("Combat")
 
 -- Auto Weave Slider
 local WeaveSlider = MainTab:CreateSlider({
@@ -143,9 +132,9 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
--- Punch Speed Multiplier Slider
+-- Global Custom Speed Slider
 local PunchSpeedSlider = MainTab:CreateSlider({
-   Name = "Punch Animation Speed",
+   Name = "Global Animation Speed",
    Range = {1, 10},
    Increment = 0.1,
    Suffix = "x Speed",
@@ -223,7 +212,7 @@ local HitboxToggle = MainTab:CreateToggle({
 -- BACKGROUND TRACKING LOOPS
 -- ==========================================
 
--- Animation Speed Modifier Loop targeting ONLY your specific list
+-- Optimized Global Animation Modifier Loop
 PunchAnimConnection = RunService.Heartbeat:Connect(function()
    pcall(function()
       local char = LocalPlayer.Character
@@ -237,30 +226,19 @@ PunchAnimConnection = RunService.Heartbeat:Connect(function()
                for _, track in ipairs(target:GetPlayingAnimationTracks()) do
                   if track.Animation then
                      local animName = string.lower(track.Name)
+                     local isExcluded = false
                      
-                     -- First, check if it's a movement animation to protect walk/run integrity
-                     local isMovement = false
-                     for _, movementWord in ipairs(movementExclusions) do
-                        if animName:find(movementWord) then
-                           isMovement = true
+                     -- Match against default movement parameters to protect base character physics
+                     for _, excludedWord in ipairs(defaultExclusions) do
+                        if animName:find(excludedWord) then
+                           isExcluded = true
                            break
                         end
                      end
                      
-                     -- If it isn't movement, check if it matches a word from your combat list
-                     if not isMovement then
-                        local matchesTarget = false
-                        for _, allowedWord in ipairs(targetWords) do
-                           if animName:find(allowedWord) then
-                              matchesTarget = true
-                              break
-                           end
-                        end
-                        
-                        -- Speed up ONLY if it matches your designated keywords
-                        if matchesTarget then
-                           track:AdjustSpeed(currentPunchSpeed)
-                        end
+                     -- Forces everything else (attacks, custom movesets, traits) to the custom multiplier
+                     if not isExcluded then
+                        track:AdjustSpeed(currentPunchSpeed)
                      end
                   end
                end
