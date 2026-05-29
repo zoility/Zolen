@@ -39,16 +39,17 @@ local Window = Rayfield:CreateWindow({
    }
 })
 -- Services & Players Setup
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Tabs & Sections
 local MainTab = Window:CreateTab("Main", nil) 
+local TradeTab = Window:CreateTab("Trade", nil) -- New Trade Tab
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
--- Configuration Variables
+-- Variables
 local weavetrue = false
 local weaveint = 0.3336
 local AutoWeaveConnection = nil
@@ -60,6 +61,146 @@ local WalkSpeedConnection = nil
 local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
+
+-- Fling Tracking Variables
+local selectedPlayerName = ""
+getgenv().OldPos = nil
+getgenv().FPDH = workspace.FallenPartsDestroyHeight
+
+-- ==========================================
+-- TRADE TAB ELEMENTS (Fling Mechanics)
+-- ==========================================
+
+TradeTab:CreateSection("Target Settings")
+
+-- Dynamic Player Dropdown
+local PlayerDropdown = TradeTab:CreateDropdown({
+   Name = "Select Target",
+   Options = {},
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "FlingTargetDropdown",
+   Callback = function(Options)
+      selectedPlayerName = Options[1]
+   end,
+})
+
+-- Helper function to refresh the player dropdown list
+local function RefreshDropdown()
+   local playerList = {}
+   for _, p in ipairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then
+         table.insert(playerList, p.Name)
+      end
+   end
+   PlayerDropdown:Refresh(playerList)
+end
+
+-- Hook up dropdown updates to player events
+Players.PlayerAdded:Connect(RefreshDropdown)
+Players.PlayerRemoving:Connect(RefreshDropdown)
+task.spawn(RefreshDropdown) -- Initial layout load
+
+-- 4-Second Target Fling Button
+local FlingButton = TradeTab:CreateButton({
+   Name = "Fling Target (4s)",
+   Callback = function()
+      local targetPlayer = Players:FindFirstChild(selectedPlayerName)
+      if not targetPlayer or not targetPlayer.Character then 
+         return Rayfield:Notify({Title = "Error", Content = "No valid target selected or player left!", Duration = 3}) 
+      end
+
+      local myChar = LocalPlayer.Character
+      local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+      local myRoot = myHum and myHum.RootPart
+      local tChar = targetPlayer.Character
+      local tHum = tChar:FindFirstChildOfClass("Humanoid")
+      local tRoot = tHum and tHum.RootPart
+
+      if myChar and myHum and myRoot then
+         if tHum and tHum.Sit then
+            return Rayfield:Notify({Title = "Error", Content = targetPlayer.Name .. " is sitting!", Duration = 3})
+         end
+
+         -- Save original position before teleporting away
+         if myRoot.Velocity.Magnitude < 50 then
+            getgenv().OldPos = myRoot.CFrame
+         end
+
+         -- Bypass the boundary line crash check
+         workspace.FallenPartsDestroyHeight = 0/0
+
+         -- Anchor vector stability forcing
+         local BV = Instance.new("BodyVelocity")
+         BV.Parent = myRoot
+         BV.Velocity = Vector3.new(0, 0, 0)
+         BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+
+         -- Fling Positioning Calculations
+         local FPos = function(BasePart, Pos, Ang)
+            myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            myRoot.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            myRoot.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+         end
+
+         -- Execution Loop Tracking variables
+         local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
+         if not basePartToTarget then return end
+
+         local startTime = tick()
+         local maxTimeLimit = 4 -- Hard capped at exactly 4 seconds
+         local angleDeg = 0
+
+         -- Notification Alert
+         Rayfield:Notify({Title = "Flinging", Content = "Attacking " .. targetPlayer.Name .. " for 4 seconds...", Duration = 4})
+
+         -- Processing loop runs up to 4 seconds maximum
+         repeat
+            if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
+               if basePartToTarget.Velocity.Magnitude < 50 then
+                  angleDeg = angleDeg + 100
+                  FPos(basePartToTarget, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
+                  task.wait()
+                  FPos(basePartToTarget, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
+                  task.wait()
+               else
+                  FPos(basePartToTarget, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                  task.wait()
+                  FPos(basePartToTarget, CFrame.new(0, -1.5, -tHum.WalkSpeed), CFrame.Angles(0, 0, 0))
+                  task.wait()
+               end
+            else
+               break
+            end
+         until tick() - startTime >= maxTimeLimit
+
+         -- Clean up physical constraints immediately
+         BV:Destroy()
+         myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+
+         -- Safe snap back return to starting coordinates
+         if getgenv().OldPos then
+            repeat
+               myRoot.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+               myChar:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+               myHum:ChangeState("GettingUp")
+               for _, part in pairs(myChar:GetChildren()) do
+                  if part:IsA("BasePart") then
+                     part.Velocity, part.RotVelocity = Vector3.new(), Vector3.new()
+                  end
+               end
+               task.wait()
+            until (myRoot.Position - getgenv().OldPos.p).Magnitude < 25
+            workspace.FallenPartsDestroyHeight = getgenv().FPDH
+         end
+         
+         Rayfield:Notify({Title = "Finished", Content = "Returned safely to original spot.", Duration = 2})
+      end
+   end,
+})
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
@@ -186,7 +327,7 @@ local HitboxToggle = MainTab:CreateToggle({
 })
 
 -- ==========================================
--- BACKGROUND TRACKING LOOPS
+-- MISC TAB ELEMENTS
 -- ==========================================
 
 -- Permanent Loop for WalkSpeed
