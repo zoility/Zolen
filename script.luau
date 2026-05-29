@@ -1,3 +1,42 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Zolen",
+   Icon = 0, 
+   LoadingTitle = "ZOLEN ON TOP",
+   LoadingSubtitle = "by zoility",
+   ShowText = "Zolen", 
+   Theme = "AmberGlow", 
+
+   ToggleUIKeybind = "K", 
+
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false, 
+
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil, 
+      FileName = "Big Hub"
+   },
+
+   Discord = {
+      Enabled = false, 
+      Invite = "noinvitelink", 
+      RememberJoins = true 
+   },
+
+   KeySystem = false, 
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided", 
+      FileName = "Key", 
+      SaveKey = true, 
+      GrabKeyFromSite = false, 
+      Key = {"Hello"} 
+   }
+})
+
 -- Services & Players Setup
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -108,9 +147,9 @@ local FlingButton = TradeTab:CreateButton({
             myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             
-            -- Override physics engine vectors to absolute force maximums
-            myRoot.Velocity = Vector3.new(9e37, 9e37, 9e37)
-            myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
+            -- Stable maximum physics limit values
+            myRoot.Velocity = Vector3.new(10000, 10000, 10000)
+            myRoot.RotVelocity = Vector3.new(10000, 10000, 10000) 
          end
 
          local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
@@ -127,7 +166,7 @@ local FlingButton = TradeTab:CreateButton({
             if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
                angleDeg = angleDeg + 90
                
-               -- Override any tracking adjustments to force camera stay completely still
+               -- Force camera stay completely still
                Camera.CFrame = originalCameraCFrame
                
                -- Align real character straight into target boundaries
