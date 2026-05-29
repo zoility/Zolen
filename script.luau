@@ -52,17 +52,17 @@ local MiscSection = MiscTab:CreateSection("Misc")
 
 -- Auto Weave Configuration Variables
 local weavetrue = false
-local weaveint = 0.3336
+local weaveint = 0.22
 local AutoWeaveConnection = nil
 local elapsed = 0
 
 -- Main Tab Elements
 local WeaveSlider = MainTab:CreateSlider({
    Name = "Auto Weave Interval",
-   Range = {0, 1},
+   Range = {0.005, 1},
    Increment = 0.01,
    Suffix = "s",
-   CurrentValue = 0.33,
+   CurrentValue = 0.22,
    Flag = "WeaveSlider", 
    Callback = function(Value)
       weaveint = Value
