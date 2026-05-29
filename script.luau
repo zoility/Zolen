@@ -38,7 +38,6 @@ local Window = Rayfield:CreateWindow({
       Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
    }
 })
-
 -- Services & Players Setup
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -63,6 +62,10 @@ local WalkSpeedConnection = nil
 local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
+
+-- New Animation Speed Configuration
+local currentPunchSpeed = 1.0
+local AnimationConnection = nil
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
@@ -124,9 +127,24 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
+MainTab:CreateSection("Combat")
+
+-- Punch Speed Slider (1 is normal speed, 5 is 5x faster)
+local PunchSlider = MainTab:CreateSlider({
+   Name = "Punch Speed Multiplier",
+   Range = {1, 10},
+   Increment = 0.1,
+   Suffix = "x Speed",
+   CurrentValue = 1,
+   Flag = "PunchSpeedSlider",
+   Callback = function(Value)
+      currentPunchSpeed = Value
+   end,
+})
+
 MainTab:CreateSection("Hitboxes")
 
--- Hitbox Expander Slider (Max size 10)
+-- Hitbox Expander Slider
 local HitboxSlider = MainTab:CreateSlider({
    Name = "Hitbox Size",
    Range = {2, 10},
@@ -153,7 +171,6 @@ local HitboxToggle = MainTab:CreateToggle({
             HitboxConnection = nil 
          end
          
-         -- Frame-perfect loop updating other players' hitboxes
          HitboxConnection = RunService.Heartbeat:Connect(function()
             if not hitboxtrue then return end
             
@@ -162,26 +179,24 @@ local HitboxToggle = MainTab:CreateToggle({
                   local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                   if hrp then
                      hrp.Size = Vector3.new(hitboxsize, hitboxsize, hitboxsize)
-                     hrp.Transparency = 0.7 -- Makes the hitbox visible but see-through
-                     hrp.CanCollide = false -- Prevents you from getting stuck on them
+                     hrp.Transparency = 0.7 
+                     hrp.CanCollide = false 
                   end
                end
             end
          end)
       else
-         -- Kill the loop instantly when toggled off
          if HitboxConnection then 
             HitboxConnection:Disconnect() 
             HitboxConnection = nil 
          end
          
-         -- Reset everyone back to standard Roblox configurations
          for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character then
                local hrp = player.Character:FindFirstChild("HumanoidRootPart")
                if hrp then
-                  hrp.Size = Vector3.new(2, 2, 1) -- Standard Roblox HRP size
-                  hrp.Transparency = 0.6          -- Invisible again
+                  hrp.Size = Vector3.new(2, 2, 1) 
+                  hrp.Transparency = 1          
                   hrp.CanCollide = true
                end
             end
@@ -191,21 +206,46 @@ local HitboxToggle = MainTab:CreateToggle({
 })
 
 -- ==========================================
--- MISC TAB ELEMENTS
+-- BACKGROUND TRACKING LOOPS
 -- ==========================================
 
+-- Continuous Animation Interceptor Loop
+AnimationConnection = RunService.Heartbeat:Connect(function()
+   pcall(function()
+      local char = LocalPlayer.Character
+      if char then
+         local humanoid = char:FindFirstChildOfClass("Humanoid")
+         if humanoid then
+            local animator = humanoid:FindFirstChildOfClass("Animator")
+            local target = animator or humanoid -- Falls back to Humanoid if Animator isn't explicit
+            
+            if target then
+               -- Scans all tracks currently playing on your character every frame
+               for _, track in ipairs(target:GetPlayingAnimationTracks()) do
+                  local animId = tostring(track.Animation.AnimationId):lower()
+                  
+                  -- Filters out movement animations so you don't ruin your walk cycles
+                  if not animId:find("run") and not animId:find("walk") and not animId:find("idle") and not animId:find("fall") and not animId:find("jump") then
+                     track:AdjustSpeed(currentPunchSpeed)
+                  end
+               end
+            end
+         end
+      end
+   end)
+end)
+
+-- Permanent Loop for WalkSpeed
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
    local char = LocalPlayer.Character
    if char then
       local humanoid = char:FindFirstChildOfClass("Humanoid")
-      -- If the humanoid exists and its speed doesn't match the slider, force it back instantly
       if humanoid and humanoid.WalkSpeed ~= currentWalkSpeed then
          humanoid.WalkSpeed = currentWalkSpeed
       end
    end
 end)
 
--- Misc Tab Elements
 local WalkSpeedSlider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 300},
