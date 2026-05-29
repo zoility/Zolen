@@ -118,7 +118,19 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
-local Slider = MiscTab:CreateSlider({
+WalkSpeedConnection = RunService.Heartbeat:Connect(function()
+   local char = LocalPlayer.Character
+   if char then
+      local humanoid = char:FindFirstChildOfClass("Humanoid")
+      -- If the humanoid exists and its speed doesn't match the slider, force it back instantly
+      if humanoid and humanoid.WalkSpeed ~= currentWalkSpeed then
+         humanoid.WalkSpeed = currentWalkSpeed
+      end
+   end
+end)
+
+-- Misc Tab Elements
+local WalkSpeedSlider = MiscTab:CreateSlider({
    Name = "WalkSpeed",
    Range = {0, 300},
    Increment = 2,
@@ -126,13 +138,6 @@ local Slider = MiscTab:CreateSlider({
    CurrentValue = 20,
    Flag = "Slider1", 
    Callback = function(Value)
-      -- Safely updates WalkSpeed instantly without using any RenderStepped/Heartbeat connections
-      local player = game.Players.LocalPlayer
-      if player and player.Character then
-         local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-         if humanoid then
-            humanoid.WalkSpeed = Value
-         end
-      end
+      currentWalkSpeed = Value
    end,
 })
