@@ -39,66 +39,82 @@ local Window = Rayfield:CreateWindow({
    }
 })
 
+-- Services & Players Setup
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+-- Tabs & Sections
 local MainTab = Window:CreateTab("Main", nil) -- Title, Image
 local MainSection = MainTab:CreateSection("Main")
 
 local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
 local MiscSection = MiscTab:CreateSection("Misc")
 
+-- Auto Weave Configuration Variables
 local weavetrue = false
-local weaveint = 0.22
+local weaveint = 0.3336
+local AutoWeaveConnection = nil
+local elapsed = 0
 
+-- Main Tab Elements
 local WeaveSlider = MainTab:CreateSlider({
    Name = "Auto Weave Interval",
    Range = {0, 1},
    Increment = 0.01,
    Suffix = "s",
-   CurrentValue = 0.22,
-   Flag = "WeaveSlider", -- Updated flag to prevent overlaps
+   CurrentValue = 0.33,
+   Flag = "WeaveSlider", 
    Callback = function(Value)
-       weaveint = Value
+      weaveint = Value
    end,
 })
 
 local WeaveToggle = MainTab:CreateToggle({
    Name = "Auto Weave",
    CurrentValue = false,
-   Flag = "WeaveToggle", -- Updated flag to prevent overlaps
+   Flag = "WeaveToggle", 
    Callback = function(Value)
-       weavetrue = Value
-       
-       if weavetrue then
-           task.spawn(function()
-               while weavetrue do
-                   local player = game:GetService("Players").LocalPlayer
-                   
-                   -- Using pcall and FindFirstChild prevents the script from breaking if you die or respawn
-                   pcall(function()
-                       local args = {
-                           "Weave",
-                           [3] = true
-                       }
-                       
-                       local character = player.Character
-                       if character then
-                           local core = character:FindFirstChild("Core")
-                           if core then
-                               local communicate = core:FindFirstChild("Communicate")
-                               if communicate then
-                                   local remote = communicate:FindFirstChild("")
-                                   if remote then
-                                       remote:FireServer(unpack(args))
-                                   end
-                               end
-                           end
-                       end
-                   end)
-                   
-                   -- Waits for the exact amount of time set by your slider before firing again
-                   task.wait(weaveint)
-               end
-           end)
-       end
+      weavetrue = Value
+      
+      if weavetrue then
+         -- Safety check to ensure we don't stack multiple connections
+         if AutoWeaveConnection then 
+            AutoWeaveConnection:Disconnect() 
+            AutoWeaveConnection = nil 
+         end
+         
+         elapsed = 0
+         local MICRO_VARIATION = 0.00005
+
+         AutoWeaveConnection = RunService.Heartbeat:Connect(function(dt)
+            if not weavetrue then return end
+            elapsed = elapsed + dt
+            
+            -- Character & Core Validation
+            local char = LocalPlayer.Character if not char then return end
+            local core = char:FindFirstChild('Core') if not core then return end
+            local comm = core:FindFirstChild('Communicate') if not comm then return end
+            local phonk = comm:FindFirstChild('RemoteEvent') or comm:FindFirstChildOfClass('RemoteEvent')
+            if not phonk then return end
+
+            -- Micro-optimized timing math from your friend's script
+            local interval = weaveint + (math.random() - 0.5) * MICRO_VARIATION
+            while elapsed >= interval do
+               elapsed = elapsed - interval
+               pcall(function() 
+                  -- Directly fires the remote with your arguments ("Weave", nil, true)
+                  -- This removes the deprecated 'table.maxn' which breaks on modern executors
+                  phonk:FireServer("Weave", nil, true) 
+               end)
+            end
+         end)
+      else
+         -- Kill the heartbeat loop instantly when toggled off
+         if AutoWeaveConnection then 
+            AutoWeaveConnection:Disconnect() 
+            AutoWeaveConnection = nil 
+         end
+      end
    end,
 })
 
