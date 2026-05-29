@@ -56,10 +56,10 @@ local weaveint = 0.3336
 local AutoWeaveConnection = nil
 local weaveElapsed = 0
 
--- Auto Punch Configuration Variables
-local punchtrue = false
-local punchint = 0.3336
-local AutoPunchConnection = nil
+-- Punch Speed Configuration Variables
+local punchSpeedTrue = false
+local punchSpeedInt = 0.3336
+local PunchSpeedConnection = nil
 local punchElapsed = 0
 
 -- WalkSpeed Configuration Variables
@@ -75,7 +75,7 @@ local HitboxConnection = nil
 -- MAIN TAB ELEMENTS
 -- ==========================================
 
-MainTab:CreateSection("Combat Loops")
+MainTab:CreateSection("Combat")
 
 -- Auto Weave Slider
 local WeaveSlider = MainTab:CreateSlider({
@@ -134,38 +134,38 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
--- Auto Punch Slider
-local PunchSlider = MainTab:CreateSlider({
-   Name = "Auto Punch Interval",
+-- Punch Speed Interval Slider
+local PunchSpeedSlider = MainTab:CreateSlider({
+   Name = "Punch Cooldown Interval",
    Range = {0, 1},
    Increment = 0.01,
-   Suffix = "s",
+   Suffix = "s delay",
    CurrentValue = 0.33,
-   Flag = "PunchSlider", 
+   Flag = "PunchSpeedSlider", 
    Callback = function(Value)
-      punchint = Value
+      punchSpeedInt = Value
    end,
 })
 
--- Auto Punch Toggle
-local PunchToggle = MainTab:CreateToggle({
-   Name = "Auto Punch",
+-- Punch Speed Toggle
+local PunchSpeedToggle = MainTab:CreateToggle({
+   Name = "Punch Speed Modifier",
    CurrentValue = false,
-   Flag = "PunchToggle", 
+   Flag = "PunchSpeedToggle", 
    Callback = function(Value)
-      punchtrue = Value
+      punchSpeedTrue = Value
       
-      if punchtrue then
-         if AutoPunchConnection then 
-            AutoPunchConnection:Disconnect() 
-            AutoPunchConnection = nil 
+      if punchSpeedTrue then
+         if PunchSpeedConnection then 
+            PunchSpeedConnection:Disconnect() 
+            PunchSpeedConnection = nil 
          end
          
          punchElapsed = 0
          local MICRO_VARIATION = 0.00005
 
-         AutoPunchConnection = RunService.Heartbeat:Connect(function(dt)
-            if not punchtrue then return end
+         PunchSpeedConnection = RunService.Heartbeat:Connect(function(dt)
+            if not punchSpeedTrue then return end
             punchElapsed = punchElapsed + dt
             
             local char = LocalPlayer.Character if not char then return end
@@ -174,19 +174,19 @@ local PunchToggle = MainTab:CreateToggle({
             local phonk = comm:FindFirstChild('RemoteEvent') or comm:FindFirstChildOfClass('RemoteEvent')
             if not phonk then return end
 
-            local interval = punchint + (math.random() - 0.5) * MICRO_VARIATION
+            -- Uses your friend's logic to fire the remote event at the specified speed interval
+            local interval = punchSpeedInt + (math.random() - 0.5) * MICRO_VARIATION
             while punchElapsed >= interval do
                punchElapsed = punchElapsed - interval
                pcall(function() 
-                  -- Fires the exact same remote architecture, but requests a Punch action
                   phonk:FireServer("Punch", nil, true) 
                end)
             end
          end)
       else
-         if AutoPunchConnection then 
-            AutoPunchConnection:Disconnect() 
-            AutoPunchConnection = nil 
+         if PunchSpeedConnection then 
+            PunchSpeedConnection:Disconnect() 
+            PunchSpeedConnection = nil 
          end
       end
    end,
