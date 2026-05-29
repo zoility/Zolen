@@ -50,28 +50,34 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
--- Configuration Variables
+-- Auto Weave Configuration Variables
 local weavetrue = false
 local weaveint = 0.3336
 local AutoWeaveConnection = nil
-local elapsed = 0
+local weaveElapsed = 0
 
+-- Auto Punch Configuration Variables
+local punchtrue = false
+local punchint = 0.3336
+local AutoPunchConnection = nil
+local punchElapsed = 0
+
+-- WalkSpeed Configuration Variables
 local currentWalkSpeed = 20
 local WalkSpeedConnection = nil
 
+-- Hitbox Configuration Variables
 local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
-
--- New Animation Speed Configuration
-local currentPunchSpeed = 1.0
-local AnimationConnection = nil
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
 -- ==========================================
 
--- Auto Weave
+MainTab:CreateSection("Combat Loops")
+
+-- Auto Weave Slider
 local WeaveSlider = MainTab:CreateSlider({
    Name = "Auto Weave Interval",
    Range = {0, 1},
@@ -84,6 +90,7 @@ local WeaveSlider = MainTab:CreateSlider({
    end,
 })
 
+-- Auto Weave Toggle
 local WeaveToggle = MainTab:CreateToggle({
    Name = "Auto Weave",
    CurrentValue = false,
@@ -97,12 +104,12 @@ local WeaveToggle = MainTab:CreateToggle({
             AutoWeaveConnection = nil 
          end
          
-         elapsed = 0
+         weaveElapsed = 0
          local MICRO_VARIATION = 0.00005
 
          AutoWeaveConnection = RunService.Heartbeat:Connect(function(dt)
             if not weavetrue then return end
-            elapsed = elapsed + dt
+            weaveElapsed = weaveElapsed + dt
             
             local char = LocalPlayer.Character if not char then return end
             local core = char:FindFirstChild('Core') if not core then return end
@@ -111,8 +118,8 @@ local WeaveToggle = MainTab:CreateToggle({
             if not phonk then return end
 
             local interval = weaveint + (math.random() - 0.5) * MICRO_VARIATION
-            while elapsed >= interval do
-               elapsed = elapsed - interval
+            while weaveElapsed >= interval do
+               weaveElapsed = weaveElapsed - interval
                pcall(function() 
                   phonk:FireServer("Weave", nil, true) 
                end)
@@ -127,18 +134,61 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
-MainTab:CreateSection("Combat")
-
--- Punch Speed Slider (1 is normal speed, 5 is 5x faster)
+-- Auto Punch Slider
 local PunchSlider = MainTab:CreateSlider({
-   Name = "Punch Speed Multiplier",
-   Range = {1, 10},
-   Increment = 0.1,
-   Suffix = "x Speed",
-   CurrentValue = 1,
-   Flag = "PunchSpeedSlider",
+   Name = "Auto Punch Interval",
+   Range = {0, 1},
+   Increment = 0.01,
+   Suffix = "s",
+   CurrentValue = 0.33,
+   Flag = "PunchSlider", 
    Callback = function(Value)
-      currentPunchSpeed = Value
+      punchint = Value
+   end,
+})
+
+-- Auto Punch Toggle
+local PunchToggle = MainTab:CreateToggle({
+   Name = "Auto Punch",
+   CurrentValue = false,
+   Flag = "PunchToggle", 
+   Callback = function(Value)
+      punchtrue = Value
+      
+      if punchtrue then
+         if AutoPunchConnection then 
+            AutoPunchConnection:Disconnect() 
+            AutoPunchConnection = nil 
+         end
+         
+         punchElapsed = 0
+         local MICRO_VARIATION = 0.00005
+
+         AutoPunchConnection = RunService.Heartbeat:Connect(function(dt)
+            if not punchtrue then return end
+            punchElapsed = punchElapsed + dt
+            
+            local char = LocalPlayer.Character if not char then return end
+            local core = char:FindFirstChild('Core') if not core then return end
+            local comm = core:FindFirstChild('Communicate') if not comm then return end
+            local phonk = comm:FindFirstChild('RemoteEvent') or comm:FindFirstChildOfClass('RemoteEvent')
+            if not phonk then return end
+
+            local interval = punchint + (math.random() - 0.5) * MICRO_VARIATION
+            while punchElapsed >= interval do
+               punchElapsed = punchElapsed - interval
+               pcall(function() 
+                  -- Fires the exact same remote architecture, but requests a Punch action
+                  phonk:FireServer("Punch", nil, true) 
+               end)
+            end
+         end)
+      else
+         if AutoPunchConnection then 
+            AutoPunchConnection:Disconnect() 
+            AutoPunchConnection = nil 
+         end
+      end
    end,
 })
 
@@ -206,34 +256,8 @@ local HitboxToggle = MainTab:CreateToggle({
 })
 
 -- ==========================================
--- BACKGROUND TRACKING LOOPS
+-- MISC TAB ELEMENTS
 -- ==========================================
-
--- Continuous Animation Interceptor Loop
-AnimationConnection = RunService.Heartbeat:Connect(function()
-   pcall(function()
-      local char = LocalPlayer.Character
-      if char then
-         local humanoid = char:FindFirstChildOfClass("Humanoid")
-         if humanoid then
-            local animator = humanoid:FindFirstChildOfClass("Animator")
-            local target = animator or humanoid -- Falls back to Humanoid if Animator isn't explicit
-            
-            if target then
-               -- Scans all tracks currently playing on your character every frame
-               for _, track in ipairs(target:GetPlayingAnimationTracks()) do
-                  local animId = tostring(track.Animation.AnimationId):lower()
-                  
-                  -- Filters out movement animations so you don't ruin your walk cycles
-                  if not animId:find("run") and not animId:find("walk") and not animId:find("idle") and not animId:find("fall") and not animId:find("jump") then
-                     track:AdjustSpeed(currentPunchSpeed)
-                  end
-               end
-            end
-         end
-      end
-   end)
-end)
 
 -- Permanent Loop for WalkSpeed
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
