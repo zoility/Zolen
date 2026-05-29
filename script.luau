@@ -61,16 +61,6 @@ local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
 
--- Dedicated Global Speed Variables
-local currentPunchSpeed = 1.0
-local PunchAnimConnection = nil
-
--- Strict list of default movement, physics, and engine animations to completely ignore
-local defaultExclusions = {
-   "walk", "run", "idle", "jump", "fall", "dash", "sit", "swim", "sprint",
-   "climb", "strafe", "toolanim", "pose", "wave", "cheer", "laugh", "dance"
-}
-
 -- ==========================================
 -- MAIN TAB ELEMENTS
 -- ==========================================
@@ -129,19 +119,6 @@ local WeaveToggle = MainTab:CreateToggle({
             AutoWeaveConnection = nil 
          end
       end
-   end,
-})
-
--- Global Custom Speed Slider
-local PunchSpeedSlider = MainTab:CreateSlider({
-   Name = "Global Animation Speed",
-   Range = {1, 10},
-   Increment = 0.1,
-   Suffix = "x Speed",
-   CurrentValue = 1,
-   Flag = "PunchSpeedSlider", 
-   Callback = function(Value)
-      currentPunchSpeed = Value
    end,
 })
 
@@ -211,42 +188,6 @@ local HitboxToggle = MainTab:CreateToggle({
 -- ==========================================
 -- BACKGROUND TRACKING LOOPS
 -- ==========================================
-
--- Optimized Global Animation Modifier Loop
-PunchAnimConnection = RunService.Heartbeat:Connect(function()
-   pcall(function()
-      local char = LocalPlayer.Character
-      if char then
-         local humanoid = char:FindFirstChildOfClass("Humanoid")
-         if humanoid then
-            local animator = humanoid:FindFirstChildOfClass("Animator")
-            local target = animator or humanoid
-            
-            if target then
-               for _, track in ipairs(target:GetPlayingAnimationTracks()) do
-                  if track.Animation then
-                     local animName = string.lower(track.Name)
-                     local isExcluded = false
-                     
-                     -- Match against default movement parameters to protect base character physics
-                     for _, excludedWord in ipairs(defaultExclusions) do
-                        if animName:find(excludedWord) then
-                           isExcluded = true
-                           break
-                        end
-                     end
-                     
-                     -- Forces everything else (attacks, custom movesets, traits) to the custom multiplier
-                     if not isExcluded then
-                        track:AdjustSpeed(currentPunchSpeed)
-                     end
-                  end
-               end
-            end
-         end
-      end
-   end)
-end)
 
 -- Permanent Loop for WalkSpeed
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
