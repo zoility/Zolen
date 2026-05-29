@@ -50,26 +50,35 @@ local MainSection = MainTab:CreateSection("Main")
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
--- Auto Weave Configuration Variables
+-- Configuration Variables
 local weavetrue = false
 local weaveint = 0.3336
 local AutoWeaveConnection = nil
 local weaveElapsed = 0
 
--- Punch Speed Configuration Variables
-local punchSpeedTrue = false
-local punchSpeedInt = 0.3336
-local PunchSpeedConnection = nil
-local punchElapsed = 0
-
--- WalkSpeed Configuration Variables
 local currentWalkSpeed = 20
 local WalkSpeedConnection = nil
 
--- Hitbox Configuration Variables
 local hitboxtrue = false
 local hitboxsize = 2
 local HitboxConnection = nil
+
+-- Dedicated Punch Speed Variables
+local currentPunchSpeed = 1.0
+local PunchAnimConnection = nil
+
+-- The targeted words list. Animations containing these words WILL be sped up.
+local targetWords = {
+   "philly", "crashout", "muay", "thai", "jaw", "breaker", "crowbar", "mcgregor", 
+   "peak", "boo", "striker", "yn", "boxer", "slap", "baddie", "fore", "man", 
+   "woozy", "hawk", "omni", "luffy", "jeet", "popeye", "hitman", "ali", "dukes", 
+   "khabib"
+}
+
+-- Movement terms explicitly forced to stay normal speed, just in case of word overlap
+local movementExclusions = {
+   "walk", "run", "idle", "jump", "fall", "dash"
+}
 
 -- ==========================================
 -- MAIN TAB ELEMENTS
@@ -134,61 +143,16 @@ local WeaveToggle = MainTab:CreateToggle({
    end,
 })
 
--- Punch Speed Interval Slider
+-- Punch Speed Multiplier Slider
 local PunchSpeedSlider = MainTab:CreateSlider({
-   Name = "Punch Cooldown Interval",
-   Range = {0, 1},
-   Increment = 0.01,
-   Suffix = "s delay",
-   CurrentValue = 0.33,
+   Name = "Punch Animation Speed",
+   Range = {1, 10},
+   Increment = 0.1,
+   Suffix = "x Speed",
+   CurrentValue = 1,
    Flag = "PunchSpeedSlider", 
    Callback = function(Value)
-      punchSpeedInt = Value
-   end,
-})
-
--- Punch Speed Toggle
-local PunchSpeedToggle = MainTab:CreateToggle({
-   Name = "Punch Speed Modifier",
-   CurrentValue = false,
-   Flag = "PunchSpeedToggle", 
-   Callback = function(Value)
-      punchSpeedTrue = Value
-      
-      if punchSpeedTrue then
-         if PunchSpeedConnection then 
-            PunchSpeedConnection:Disconnect() 
-            PunchSpeedConnection = nil 
-         end
-         
-         punchElapsed = 0
-         local MICRO_VARIATION = 0.00005
-
-         PunchSpeedConnection = RunService.Heartbeat:Connect(function(dt)
-            if not punchSpeedTrue then return end
-            punchElapsed = punchElapsed + dt
-            
-            local char = LocalPlayer.Character if not char then return end
-            local core = char:FindFirstChild('Core') if not core then return end
-            local comm = core:FindFirstChild('Communicate') if not comm then return end
-            local phonk = comm:FindFirstChild('RemoteEvent') or comm:FindFirstChildOfClass('RemoteEvent')
-            if not phonk then return end
-
-            -- Uses your friend's logic to fire the remote event at the specified speed interval
-            local interval = punchSpeedInt + (math.random() - 0.5) * MICRO_VARIATION
-            while punchElapsed >= interval do
-               punchElapsed = punchElapsed - interval
-               pcall(function() 
-                  phonk:FireServer("Punch", nil, true) 
-               end)
-            end
-         end)
-      else
-         if PunchSpeedConnection then 
-            PunchSpeedConnection:Disconnect() 
-            PunchSpeedConnection = nil 
-         end
-      end
+      currentPunchSpeed = Value
    end,
 })
 
@@ -256,8 +220,55 @@ local HitboxToggle = MainTab:CreateToggle({
 })
 
 -- ==========================================
--- MISC TAB ELEMENTS
+-- BACKGROUND TRACKING LOOPS
 -- ==========================================
+
+-- Animation Speed Modifier Loop targeting ONLY your specific list
+PunchAnimConnection = RunService.Heartbeat:Connect(function()
+   pcall(function()
+      local char = LocalPlayer.Character
+      if char then
+         local humanoid = char:FindFirstChildOfClass("Humanoid")
+         if humanoid then
+            local animator = humanoid:FindFirstChildOfClass("Animator")
+            local target = animator or humanoid
+            
+            if target then
+               for _, track in ipairs(target:GetPlayingAnimationTracks()) do
+                  if track.Animation then
+                     local animName = string.lower(track.Name)
+                     
+                     -- First, check if it's a movement animation to protect walk/run integrity
+                     local isMovement = false
+                     for _, movementWord in ipairs(movementExclusions) do
+                        if animName:find(movementWord) then
+                           isMovement = true
+                           break
+                        end
+                     end
+                     
+                     -- If it isn't movement, check if it matches a word from your combat list
+                     if not isMovement then
+                        local matchesTarget = false
+                        for _, allowedWord in ipairs(targetWords) do
+                           if animName:find(allowedWord) then
+                              matchesTarget = true
+                              break
+                           end
+                        end
+                        
+                        -- Speed up ONLY if it matches your designated keywords
+                        if matchesTarget then
+                           track:AdjustSpeed(currentPunchSpeed)
+                        end
+                     end
+                  end
+               end
+            end
+         end
+      end
+   end)
+end)
 
 -- Permanent Loop for WalkSpeed
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
