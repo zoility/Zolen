@@ -51,11 +51,11 @@ local MiscSection = MiscTab:CreateSection("Misc")
 
 -- Variables
 local weavetrue = false
-local weaveint = 0.3336
+local weaveint = 0.34
 local AutoWeaveConnection = nil
 local weaveElapsed = 0
 
-local currentWalkSpeed = 20
+local currentWalkSpeed = 14
 local WalkSpeedConnection = nil
 
 local hitboxtrue = false
