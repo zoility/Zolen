@@ -55,7 +55,7 @@ local weaveint = 0.3336
 local AutoWeaveConnection = nil
 local weaveElapsed = 0
 
-local currentWalkSpeed = 20
+local currentWalkSpeed = 12 -- Set to 12 on startup
 local WalkSpeedConnection = nil
 
 local hitboxtrue = false
@@ -131,6 +131,20 @@ local FlingButton = TradeTab:CreateButton({
          local originalCameraCFrame = Camera.CFrame
          Camera.CameraType = Enum.CameraType.Scriptable
 
+         -- Create local client-side fake parts to keep you visible in place on your screen
+         local renderClones = {}
+         for _, part in ipairs(myChar:GetChildren()) do
+            if part:IsA("BasePart") and part.Transparency < 1 then
+               local clone = part:Clone()
+               clone.CFrame = part.CFrame
+               clone.Anchored = true
+               clone.CanCollide = false
+               clone.Parent = workspace
+               table.insert(renderClones, clone)
+               part.Transparency = 1 -- Hide actual part from local view while it moves
+            end
+         end
+
          -- Bypass boundary limits
          workspace.FallenPartsDestroyHeight = 0/0
 
@@ -142,14 +156,14 @@ local FlingButton = TradeTab:CreateButton({
 
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-         -- HIGH POWER POSITIONAL LOGIC
+         -- ULTIMATE POWER POSITIONAL LOGIC
          local FPos = function(BasePart, Pos, Ang)
             myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             
-            -- Multiplied power constraints (Increased Rotational Velocity)
-            myRoot.Velocity = Vector3.new(4e8, 4e8, 4e8)
-            myRoot.RotVelocity = Vector3.new(9e9, 9e9, 9e9) 
+            -- Pushed beyond 32-bit floating point engine limit barriers for raw force output
+            myRoot.Velocity = Vector3.new(9e37, 9e37, 9e37)
+            myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
          end
 
          local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
@@ -164,13 +178,13 @@ local FlingButton = TradeTab:CreateButton({
          -- Running loop configuration
          repeat
             if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
-               angleDeg = angleDeg + 45 
+               angleDeg = angleDeg + 90
                
-               -- Force camera matrix override to prevent tracking displacement updates
+               -- Keep camera frozen in position
                Camera.CFrame = originalCameraCFrame
                
-               -- Smooth tracking vector right under their character's root block
-               FPos(basePartToTarget, CFrame.new(0, -0.5, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
+               -- High power tracking overlap matrix rotation
+               FPos(basePartToTarget, CFrame.new(0, -0.25, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
                task.wait()
             else
                break
@@ -180,6 +194,21 @@ local FlingButton = TradeTab:CreateButton({
          -- Clean up physical constraints immediately
          BV:Destroy()
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+
+         -- Clean up visible client fake proxy clones and restore actual body opacity
+         for _, clone in ipairs(renderClones) do
+            clone:Destroy()
+         end
+         for _, part in ipairs(myChar:GetChildren()) do
+            if part:IsA("BasePart") then
+               -- Restore normal render state mapping
+               if part.Name == "HumanoidRootPart" then
+                  part.Transparency = 1
+               else
+                  part.Transparency = 0
+               end
+            end
+         end
 
          -- Return safely to original position coordinates
          if getgenv().OldPos then
@@ -312,6 +341,28 @@ local HitboxToggle = MainTab:CreateToggle({
          end)
       else
          if HitboxConnection then 
+            if hitboxtrue then
+         if HitboxConnection then 
+            HitboxConnection:Disconnect() 
+            HitboxConnection = nil 
+         end
+         
+         HitboxConnection = RunService.Heartbeat:Connect(function()
+            if not hitboxtrue then return end
+            
+            for _, player in ipairs(Players:GetPlayers()) do
+               if player ~= LocalPlayer and player.Character then
+                  local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                  if hrp then
+                     hrp.Size = Vector3.new(hitboxsize, hitboxsize, hitboxsize)
+                     hrp.Transparency = 0.7 
+                     hrp.CanCollide = false 
+                  end
+               end
+            end
+         end)
+      else
+         if HitboxConnection then 
             HitboxConnection:Disconnect() 
             HitboxConnection = nil 
          end
@@ -350,7 +401,7 @@ local WalkSpeedSlider = MiscTab:CreateSlider({
    Range = {0, 300},
    Increment = 2,
    Suffix = "WalkSpeed",
-   CurrentValue = 20,
+   CurrentValue = 12, -- Matches the startup configuration variable
    Flag = "Slider1", 
    Callback = function(Value)
       currentWalkSpeed = Value
