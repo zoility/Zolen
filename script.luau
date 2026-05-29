@@ -49,13 +49,13 @@ local TradeTab = Window:CreateTab("Trade", nil)
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
--- Configuration States
+-- Variables
 local weavetrue = false
 local weaveint = 0.3336
 local AutoWeaveConnection = nil
 local weaveElapsed = 0
 
-local currentWalkSpeed = 12 
+local currentWalkSpeed = 12 -- Set to 12 on startup
 local WalkSpeedConnection = nil
 
 local hitboxtrue = false
@@ -77,7 +77,7 @@ TradeTab:CreateSection("Target Settings")
 local PlayerDropdown = TradeTab:CreateDropdown({
    Name = "Select Target",
    Options = {},
-   CurrentOption = "", 
+   CurrentOption = {""},
    MultipleOptions = false,
    Flag = "FlingTargetDropdown",
    Callback = function(Options)
@@ -122,19 +122,33 @@ local FlingButton = TradeTab:CreateButton({
             return Rayfield:Notify({Title = "Error", Content = targetPlayer.Name .. " is sitting!", Duration = 3})
          end
 
-         -- Save original location to return later
+         -- Save original position before teleporting away
          if myRoot.Velocity.Magnitude < 50 then
             getgenv().OldPos = myRoot.CFrame
          end
 
-         -- STRICTLY LOCK CAMERA IN PLACE
+         -- LOCK CAMERA IN PLACE (Client Side Focus Anchor)
          local originalCameraCFrame = Camera.CFrame
          Camera.CameraType = Enum.CameraType.Scriptable
+
+         -- Create local client-side fake parts to keep you stationary on your screen
+         local renderClones = {}
+         for _, part in ipairs(myChar:GetChildren()) do
+            if part:IsA("BasePart") and part.Transparency < 1 then
+               local clone = part:Clone()
+               clone.CFrame = part.CFrame
+               clone.Anchored = true
+               clone.CanCollide = false
+               clone.Parent = workspace
+               table.insert(renderClones, clone)
+               part.Transparency = 1 
+            end
+         end
 
          -- Bypass boundary limits
          workspace.FallenPartsDestroyHeight = 0/0
 
-         -- Create physical push force stability 
+         -- Anchor velocity stability forcing
          local BV = Instance.new("BodyVelocity")
          BV.Parent = myRoot
          BV.Velocity = Vector3.new(0, 0, 0)
@@ -142,14 +156,14 @@ local FlingButton = TradeTab:CreateButton({
 
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-         -- MAX LEVEL POSITIONAL KINETIC FLING ENERGY
+         -- HIGH FORCE POSITIONAL LOGIC
          local FPos = function(BasePart, Pos, Ang)
             myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             
-            -- Stable maximum physics limit values
-            myRoot.Velocity = Vector3.new(10000, 10000, 10000)
-            myRoot.RotVelocity = Vector3.new(10000, 10000, 10000) 
+            -- High concentration impact vectors
+            myRoot.Velocity = Vector3.new(9e37, 9e37, 9e37)
+            myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
          end
 
          local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
@@ -161,15 +175,15 @@ local FlingButton = TradeTab:CreateButton({
 
          Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. "...", Duration = 4})
 
-         -- Keep updating actual target positioning while keeping camera static
+         -- Running loop configuration
          repeat
             if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
                angleDeg = angleDeg + 90
                
-               -- Force camera stay completely still
+               -- Keep camera frozen in position
                Camera.CFrame = originalCameraCFrame
                
-               -- Align real character straight into target boundaries
+               -- Underneath alignment matrix
                FPos(basePartToTarget, CFrame.new(0, -0.25, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
                task.wait()
             else
@@ -177,11 +191,25 @@ local FlingButton = TradeTab:CreateButton({
             end
          until tick() - startTime >= maxTimeLimit
 
-         -- Clean up physics forces immediately
+         -- Clean up physical constraints immediately
          BV:Destroy()
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-         -- Teleport back to original placement location coordinate mapping safely
+         -- Clean up visible client fake clones and restore original body transparency maps
+         for _, clone in ipairs(renderClones) do
+            clone:Destroy()
+         end
+         for _, part in ipairs(myChar:GetChildren()) do
+            if part:IsA("BasePart") then
+               if part.Name == "HumanoidRootPart" then
+                  part.Transparency = 1
+               else
+                  part.Transparency = 0
+               end
+            end
+         end
+
+         -- Return safely to original position coordinates
          if getgenv().OldPos then
             repeat
                myRoot.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
@@ -197,7 +225,7 @@ local FlingButton = TradeTab:CreateButton({
             workspace.FallenPartsDestroyHeight = getgenv().FPDH
          end
          
-         -- RE-ATTACH CAMERA SAFELY TO CHARACTER
+         -- UNLOCK CAMERA BACK TO CUSTOM MODE
          Camera.CameraType = Enum.CameraType.Custom
          Camera.CameraSubject = myHum
          
@@ -210,6 +238,7 @@ local FlingButton = TradeTab:CreateButton({
 -- MAIN TAB ELEMENTS
 -- ==========================================
 
+-- Auto Weave Slider
 local WeaveSlider = MainTab:CreateSlider({
    Name = "Auto Weave Interval",
    Range = {0, 1},
@@ -222,6 +251,7 @@ local WeaveSlider = MainTab:CreateSlider({
    end,
 })
 
+-- Auto Weave Toggle
 local WeaveToggle = MainTab:CreateToggle({
    Name = "Auto Weave",
    CurrentValue = false,
@@ -267,7 +297,8 @@ local WeaveToggle = MainTab:CreateToggle({
 
 MainTab:CreateSection("Hitboxes")
 
-local MainHitboxSlider = MainTab:CreateSlider({
+-- Hitbox Expander Slider
+local HitboxSlider = MainTab:CreateSlider({
    Name = "Hitbox Size",
    Range = {2, 10},
    Increment = 0.5,
@@ -279,7 +310,8 @@ local MainHitboxSlider = MainTab:CreateSlider({
    end,
 })
 
-local MainHitboxToggle = MainTab:CreateToggle({
+-- Hitbox Expander Toggle (FIXED NESTING STRUCT)
+local HitboxToggle = MainTab:CreateToggle({
    Name = "Hitbox Expander",
    CurrentValue = false,
    Flag = "HitboxToggle",
@@ -330,10 +362,7 @@ local MainHitboxToggle = MainTab:CreateToggle({
 -- MISC TAB ELEMENTS
 -- ==========================================
 
-if WalkSpeedConnection then
-   WalkSpeedConnection:Disconnect()
-end
-
+-- Permanent Loop for WalkSpeed
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
    local char = LocalPlayer.Character
    if char then
