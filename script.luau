@@ -41,28 +41,40 @@ local Window = Rayfield:CreateWindow({
 
 -- Services & Players Setup
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 -- Tabs & Sections
-local MainTab = Window:CreateTab("Main", nil) -- Title, Image
+local MainTab = Window:CreateTab("Main", nil) 
 local MainSection = MainTab:CreateSection("Main")
 
-local MiscTab = Window:CreateTab("Misc", nil) -- Title, Image
+local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
--- Auto Weave Configuration Variables
+-- Configuration Variables
 local weavetrue = false
-local weaveint = 0.22
+local weaveint = 0.3336
 local AutoWeaveConnection = nil
 local elapsed = 0
 
--- Main Tab Elements
+local currentWalkSpeed = 20
+local WalkSpeedConnection = nil
+
+local hitboxtrue = false
+local hitboxsize = 2
+local HitboxConnection = nil
+
+-- ==========================================
+-- MAIN TAB ELEMENTS
+-- ==========================================
+
+-- Auto Weave
 local WeaveSlider = MainTab:CreateSlider({
    Name = "Auto Weave Interval",
-   Range = {0.005, 1},
+   Range = {0, 1},
    Increment = 0.01,
    Suffix = "s",
-   CurrentValue = 0.22,
+   CurrentValue = 0.33,
    Flag = "WeaveSlider", 
    Callback = function(Value)
       weaveint = Value
@@ -77,7 +89,6 @@ local WeaveToggle = MainTab:CreateToggle({
       weavetrue = Value
       
       if weavetrue then
-         -- Safety check to ensure we don't stack multiple connections
          if AutoWeaveConnection then 
             AutoWeaveConnection:Disconnect() 
             AutoWeaveConnection = nil 
@@ -90,26 +101,21 @@ local WeaveToggle = MainTab:CreateToggle({
             if not weavetrue then return end
             elapsed = elapsed + dt
             
-            -- Character & Core Validation
             local char = LocalPlayer.Character if not char then return end
             local core = char:FindFirstChild('Core') if not core then return end
             local comm = core:FindFirstChild('Communicate') if not comm then return end
             local phonk = comm:FindFirstChild('RemoteEvent') or comm:FindFirstChildOfClass('RemoteEvent')
             if not phonk then return end
 
-            -- Micro-optimized timing math from your friend's script
             local interval = weaveint + (math.random() - 0.5) * MICRO_VARIATION
             while elapsed >= interval do
                elapsed = elapsed - interval
                pcall(function() 
-                  -- Directly fires the remote with your arguments ("Weave", nil, true)
-                  -- This removes the deprecated 'table.maxn' which breaks on modern executors
                   phonk:FireServer("Weave", nil, true) 
                end)
             end
          end)
       else
-         -- Kill the heartbeat loop instantly when toggled off
          if AutoWeaveConnection then 
             AutoWeaveConnection:Disconnect() 
             AutoWeaveConnection = nil 
@@ -117,6 +123,76 @@ local WeaveToggle = MainTab:CreateToggle({
       end
    end,
 })
+
+MainTab:CreateSection("Hitboxes")
+
+-- Hitbox Expander Slider (Max size 10)
+local HitboxSlider = MainTab:CreateSlider({
+   Name = "Hitbox Size",
+   Range = {2, 10},
+   Increment = 0.5,
+   Suffix = " Studs",
+   CurrentValue = 2,
+   Flag = "HitboxSlider",
+   Callback = function(Value)
+      hitboxsize = Value
+   end,
+})
+
+-- Hitbox Expander Toggle
+local HitboxToggle = MainTab:CreateToggle({
+   Name = "Hitbox Expander",
+   CurrentValue = false,
+   Flag = "HitboxToggle",
+   Callback = function(Value)
+      hitboxtrue = Value
+      
+      if hitboxtrue then
+         if HitboxConnection then 
+            HitboxConnection:Disconnect() 
+            HitboxConnection = nil 
+         end
+         
+         -- Frame-perfect loop updating other players' hitboxes
+         HitboxConnection = RunService.Heartbeat:Connect(function()
+            if not hitboxtrue then return end
+            
+            for _, player in ipairs(Players:GetPlayers()) do
+               if player ~= LocalPlayer and player.Character then
+                  local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                  if hrp then
+                     hrp.Size = Vector3.new(hitboxsize, hitboxsize, hitboxsize)
+                     hrp.Transparency = 0.7 -- Makes the hitbox visible but see-through
+                     hrp.CanCollide = false -- Prevents you from getting stuck on them
+                  end
+               end
+            end
+         end)
+      else
+         -- Kill the loop instantly when toggled off
+         if HitboxConnection then 
+            HitboxConnection:Disconnect() 
+            HitboxConnection = nil 
+         end
+         
+         -- Reset everyone back to standard Roblox configurations
+         for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+               local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+               if hrp then
+                  hrp.Size = Vector3.new(2, 2, 1) -- Standard Roblox HRP size
+                  hrp.Transparency = 0.6          -- Invisible again
+                  hrp.CanCollide = true
+               end
+            end
+         end
+      end
+   end,
+})
+
+-- ==========================================
+-- MISC TAB ELEMENTS
+-- ==========================================
 
 WalkSpeedConnection = RunService.Heartbeat:Connect(function()
    local char = LocalPlayer.Character
