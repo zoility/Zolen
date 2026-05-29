@@ -68,7 +68,7 @@ local selectedPlayerName = ""
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
 
--- Helper functions for Character Collisions (From your found logic)
+-- Helper functions for Character Collisions
 local function EnableCollisions(character)
    if not character then return end 
    for _, part in pairs(character:GetDescendants()) do
@@ -238,7 +238,7 @@ local WalkSpeedSlider = MiscTab:CreateSlider({
 })
 
 -- ==========================================
--- TRADE TAB ELEMENTS (Enhanced Fling Mechanics)
+-- TRADE TAB ELEMENTS (Vertical Instant Fling)
 -- ==========================================
 
 TradeTab:CreateSection("Target Settings")
@@ -268,9 +268,9 @@ Players.PlayerAdded:Connect(RefreshDropdown)
 Players.PlayerRemoving:Connect(RefreshDropdown)
 task.spawn(RefreshDropdown)
 
--- Advanced 4-Second Target Fling Button
+-- High Power Instant Vertical Fling Button
 local FlingButton = TradeTab:CreateButton({
-   Name = "Fling Target (4s)",
+   Name = "Fling Target (Instant Upward)",
    Callback = function()
       local targetPlayer = Players:FindFirstChild(selectedPlayerName)
       if not targetPlayer or not targetPlayer.Character then 
@@ -293,13 +293,13 @@ local FlingButton = TradeTab:CreateButton({
             getgenv().OldPos = myRoot.CFrame
          end
 
-         -- STRICTLY LOCK CAMERA IN PLACE
+         -- LOCK CAMERA IN PLACE
          local originalCameraCFrame = Camera.CFrame
          Camera.CameraType = Enum.CameraType.Scriptable
 
          workspace.FallenPartsDestroyHeight = 0/0
 
-         -- Create physical push force stability 
+         -- High power BodyVelocity instantiation
          local BV = Instance.new("BodyVelocity")
          BV.Parent = myRoot
          BV.Velocity = Vector3.new(0, 0, 0)
@@ -307,45 +307,40 @@ local FlingButton = TradeTab:CreateButton({
 
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-         -- NEW ENHANCED VELOCITY LOGIC (High Power De-obfuscated Matrix)
-         local FPos = function(BasePart, Pos, Ang)
-            myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
-            myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+         -- VERTICAL ONLY INSTANT FLING PHYSICS ENGINE VALUES
+         local FPos = function(BasePart, OffsetY)
+            -- Position directly underneath the target center bounding box
+            myRoot.CFrame = CFrame.new(BasePart.Position) * CFrame.new(0, OffsetY, 0)
+            myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * CFrame.new(0, OffsetY, 0))
             
-            -- Multiplied stability forces from the new algorithm logic
-            myRoot.Velocity = Vector3.new(9e8, 9e8 * 10, 9e8)
-            myRoot.RotVelocity = Vector3.new(9e9, 9e9, 9e9) 
+            -- Force purely vertical upward trajectory velocity limits
+            myRoot.Velocity = Vector3.new(0, 9e37, 0)
+            myRoot.RotVelocity = Vector3.new(9e37, 9e37, 9e37) 
          end
 
          local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
          if not basePartToTarget then return end
 
          local startTime = tick()
-         local maxTimeLimit = 4 
-         local angleDeg = 0
+         local maxTimeLimit = 1.5 -- Faster execution time 
+         local switchState = false
 
-         Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. "...", Duration = 4})
+         Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. " upward...", Duration = 2})
 
          repeat
             if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
-               angleDeg = angleDeg + 100 -- Faster rotation increment from your logic
+               switchState = not switchState
                Camera.CFrame = originalCameraCFrame
                
-               -- Temporarily open player physics collisions to maximize impact energy transferring
                EnableCollisions(myChar)
                
-               -- Alternating High/Low Cross-Vector Shifts
-               if basePartToTarget.Velocity.Magnitude < 50 then
-                  FPos(basePartToTarget, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
-                  task.wait()
-                  FPos(basePartToTarget, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
-                  task.wait()
+               -- Rapid high frequency underground to torso hitbox intersections
+               if switchState then
+                  FPos(basePartToTarget, -1.25)
                else
-                  FPos(basePartToTarget, CFrame.new(0, 1.5, tHum.MoveDirection), CFrame.Angles(math.rad(90), 0, 0))
-                  task.wait()
-                  FPos(basePartToTarget, CFrame.new(0, -1.5, -tHum.MoveDirection), CFrame.Angles(0, 0, 0))
-                  task.wait()
+                  FPos(basePartToTarget, -0.25)
                end
+               task.wait()
             else
                break
             end
