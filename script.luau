@@ -2,50 +2,50 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "Zolen",
-   Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+   Icon = 0, 
    LoadingTitle = "ZOLEN ON TOP",
    LoadingSubtitle = "by zoility",
-   ShowText = "Zolen", -- for mobile users to unhide Rayfield, change if you'd like
-   Theme = "AmberGlow", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+   ShowText = "Zolen", 
+   Theme = "AmberGlow", 
 
-   ToggleUIKeybind = "K", -- The keybind to toggle the UI visibility (string like "K" or Enum.KeyCode)
+   ToggleUIKeybind = "K", 
 
    DisableRayfieldPrompts = false,
-   DisableBuildWarnings = false, -- Prevents Rayfield from emitting warnings when the script has a version mismatch with the interface.
-
-   -- ScriptID = "sid_xxxxxxxxxxxx", -- Your Script ID from developer.sirius.menu — enables analytics, managed keys, and script hosting
+   DisableBuildWarnings = false, 
 
    ConfigurationSaving = {
       Enabled = false,
-      FolderName = nil, -- Create a custom folder for your hub/game
+      FolderName = nil, 
       FileName = "Big Hub"
    },
 
    Discord = {
-      Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-      Invite = "noinvitelink", -- The Discord invite code, do not include Discord.gg/. E.g. Discord.gg/ABCD would be ABCD
-      RememberJoins = true -- Set this to false to make them join the Discord every time they load it up
+      Enabled = false, 
+      Invite = "noinvitelink", 
+      RememberJoins = true 
    },
 
-   KeySystem = false, -- Set this to true to use our key system
+   KeySystem = false, 
    KeySettings = {
       Title = "Untitled",
       Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
-      FileName = "Key", -- It is recommended to use something unique, as other scripts using Rayfield may overwrite your key file
-      SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
-      GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
-      Key = {"Hello"} -- List of keys that the system will accept, can be RAW file links (pastebin, github, etc.) or simple strings ("hello", "key22")
+      Note = "No method of obtaining the key is provided", 
+      FileName = "Key", 
+      SaveKey = true, 
+      GrabKeyFromSite = false, 
+      Key = {"Hello"} 
    }
 })
+
 -- Services & Players Setup
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- Tabs & Sections
 local MainTab = Window:CreateTab("Main", nil) 
-local TradeTab = Window:CreateTab("Trade", nil) -- New Trade Tab
+local TradeTab = Window:CreateTab("Trade", nil) 
 local MiscTab = Window:CreateTab("Misc", nil) 
 local MiscSection = MiscTab:CreateSection("Misc")
 
@@ -99,9 +99,9 @@ end
 -- Hook up dropdown updates to player events
 Players.PlayerAdded:Connect(RefreshDropdown)
 Players.PlayerRemoving:Connect(RefreshDropdown)
-task.spawn(RefreshDropdown) -- Initial layout load
+task.spawn(RefreshDropdown)
 
--- 4-Second Target Fling Button
+-- Smooth but High-Power 4-Second Target Fling Button
 local FlingButton = TradeTab:CreateButton({
    Name = "Fling Target (4s)",
    Callback = function()
@@ -127,10 +127,14 @@ local FlingButton = TradeTab:CreateButton({
             getgenv().OldPos = myRoot.CFrame
          end
 
-         -- Bypass the boundary line crash check
+         -- LOCK CAMERA STRICKLY IN PLACE (Client Side Focus Anchor)
+         local originalCameraCFrame = Camera.CFrame
+         Camera.CameraType = Enum.CameraType.Scriptable
+
+         -- Bypass boundary limits
          workspace.FallenPartsDestroyHeight = 0/0
 
-         -- Anchor vector stability forcing
+         -- Anchor velocity stability forcing
          local BV = Instance.new("BodyVelocity")
          BV.Parent = myRoot
          BV.Velocity = Vector3.new(0, 0, 0)
@@ -138,40 +142,36 @@ local FlingButton = TradeTab:CreateButton({
 
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
-         -- Fling Positioning Calculations
+         -- HIGH POWER POSITIONAL LOGIC
          local FPos = function(BasePart, Pos, Ang)
             myRoot.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             myChar:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
-            myRoot.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-            myRoot.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+            
+            -- Multiplied power constraints (Increased Rotational Velocity)
+            myRoot.Velocity = Vector3.new(4e8, 4e8, 4e8)
+            myRoot.RotVelocity = Vector3.new(9e9, 9e9, 9e9) 
          end
 
-         -- Execution Loop Tracking variables
          local basePartToTarget = tRoot or tChar:FindFirstChild("Head") or tChar:FindFirstChildWhichIsA("BasePart")
          if not basePartToTarget then return end
 
          local startTime = tick()
-         local maxTimeLimit = 4 -- Hard capped at exactly 4 seconds
+         local maxTimeLimit = 4 
          local angleDeg = 0
 
-         -- Notification Alert
-         Rayfield:Notify({Title = "Flinging", Content = "Attacking " .. targetPlayer.Name .. " for 4 seconds...", Duration = 4})
+         Rayfield:Notify({Title = "Flinging", Content = "Launching " .. targetPlayer.Name .. "...", Duration = 4})
 
-         -- Processing loop runs up to 4 seconds maximum
+         -- Running loop configuration
          repeat
             if myRoot and tHum and basePartToTarget and basePartToTarget.Parent then
-               if basePartToTarget.Velocity.Magnitude < 50 then
-                  angleDeg = angleDeg + 100
-                  FPos(basePartToTarget, CFrame.new(0, 1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
-                  task.wait()
-                  FPos(basePartToTarget, CFrame.new(0, -1.5, 0) + tHum.MoveDirection * basePartToTarget.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(angleDeg), 0, 0))
-                  task.wait()
-               else
-                  FPos(basePartToTarget, CFrame.new(0, 1.5, tHum.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                  task.wait()
-                  FPos(basePartToTarget, CFrame.new(0, -1.5, -tHum.WalkSpeed), CFrame.Angles(0, 0, 0))
-                  task.wait()
-               end
+               angleDeg = angleDeg + 45 
+               
+               -- Force camera matrix override to prevent tracking displacement updates
+               Camera.CFrame = originalCameraCFrame
+               
+               -- Smooth tracking vector right under their character's root block
+               FPos(basePartToTarget, CFrame.new(0, -0.5, 0), CFrame.Angles(0, math.rad(angleDeg), 0))
+               task.wait()
             else
                break
             end
@@ -181,7 +181,7 @@ local FlingButton = TradeTab:CreateButton({
          BV:Destroy()
          myHum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
 
-         -- Safe snap back return to starting coordinates
+         -- Return safely to original position coordinates
          if getgenv().OldPos then
             repeat
                myRoot.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
@@ -197,7 +197,11 @@ local FlingButton = TradeTab:CreateButton({
             workspace.FallenPartsDestroyHeight = getgenv().FPDH
          end
          
-         Rayfield:Notify({Title = "Finished", Content = "Returned safely to original spot.", Duration = 2})
+         -- UNLOCK CAMERA BACK TO CUSTOM MODE
+         Camera.CameraType = Enum.CameraType.Custom
+         Camera.CameraSubject = myHum
+         
+         Rayfield:Notify({Title = "Finished", Content = "Returned safely.", Duration = 2})
       end
    end,
 })
